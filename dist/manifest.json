@@ -1,0 +1,68 @@
+{
+  "name": "OTA Scraper Extension",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "Scrapes multiple OTA reservation data and sends to local server.",
+  "permissions": ["alarms", "tabs", "storage", "scripting", "cookies"],
+  "host_permissions": [
+    "https://ad.goodchoice.kr/*",
+    "https://partner.goodchoice.kr/*",
+    "https://partner.yanolja.com/*",
+    "https://*.yanolja.com/*",
+    "https://account.yanolja.biz/*",
+    "https://ycs.agoda.com/*",
+    "https://admin.booking.com/*",
+    "https://apps.expediapartnercentral.com/*",
+    "https://www.expediapartnercentral.com/*",
+    "https://pms.coolstay.co.kr/*",
+    "http://localhost:3003/*",
+    "https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com/*",
+    "https://tetris992.github.io/*"
+  ],
+  "externally_connectable": {
+    "matches": ["http://localhost:3000/*", "https://tetris992.github.io/*"]
+  },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://ad.goodchoice.kr/*"],
+      "js": ["goodMotel.bundle.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://partner.goodchoice.kr/*"],
+      "js": ["goodHotel.bundle.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://ycs.agoda.com/*"],
+      "js": ["agoda.bundle.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://partner.yanolja.com/*"],
+      "js": ["yanolja.bundle.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://admin.booking.com/*"],
+      "js": ["booking.bundle.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.expediapartnercentral.com/*",
+        "https://apps.expediapartnercentral.com/*"
+      ],
+      "js": ["expedia.bundle.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://pms.coolstay.co.kr/*"],
+      "js": ["coolstay.bundle.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

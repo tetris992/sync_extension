@@ -1,0 +1,6 @@
+// ota-scraper-extension/.babelrc
+
+{
+    "presets": ["@babel/preset-env"]
+  }
+  
