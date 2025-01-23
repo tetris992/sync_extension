@@ -4,7 +4,21 @@
   "manifest_version": 3,
   "description": "Scrapes multiple OTA reservation data and sends to local server.",
   "permissions": ["alarms", "tabs", "storage", "scripting", "cookies"],
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    },
+    "default_title": "OTA Scraper Extension"
+  },
   "host_permissions": [
+    "https://staysync.me/*",
     "https://ad.goodchoice.kr/*",
     "https://partner.goodchoice.kr/*",
     "https://partner.yanolja.com/*",
@@ -17,10 +31,16 @@
     "https://pms.coolstay.co.kr/*",
     "http://localhost:3003/*",
     "https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com/*",
-    "https://tetris992.github.io/*"
+    "https://tetris992.github.io/*",
+    "https://tetris992.github.io/stay_react/*"
   ],
   "externally_connectable": {
-    "matches": ["http://localhost:3000/*", "https://tetris992.github.io/*"]
+    "matches": [
+      "https://staysync.me/*",
+      "http://localhost:3000/*",
+      "https://tetris992.github.io/*",
+      "https://tetris992.github.io/stay_react/*"
+    ]
   },
   "background": {
     "service_worker": "background.bundle.js"

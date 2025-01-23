@@ -9,25 +9,21 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const mode = process.env.NODE_ENV || 'development';
-const isDev = mode === 'development';
+// 항상 production 빌드
+const mode = 'production';
+const isDev = false;
 
+// 프로덕션 환경 변수들
 const envVariables = {
-  'process.env.EXTENSION_NAME': JSON.stringify(
-    isDev ? 'OTA Scraper Extension (Dev)' : 'OTA Scraper Extension'
-  ),
+  'process.env.EXTENSION_NAME': JSON.stringify('OTA Scraper Extension'),
   'process.env.DESCRIPTION': JSON.stringify(
-    isDev
-      ? 'Dev: Scrape multiple OTA reservation data and send to local server.'
-      : 'Scrape multiple OTA reservation data and send to server.'
+    'Scrape multiple OTA reservation data and send to server.'
   ),
   'process.env.BACKEND_API_URL': JSON.stringify(
-    isDev
-      ? 'http://localhost:3003' // 개발용
-      : 'https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com'
+    'https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com'
   ),
   'process.env.REACT_APP_URL': JSON.stringify(
-    isDev ? 'http://localhost:3000' : 'https://tetris992.github.io'
+    'https://staysync.me'
   ),
 };
 
@@ -73,7 +69,9 @@ export default {
     extensions: ['.js'],
   },
   plugins: [
+    // DefinePlugin으로 env 변수 설정
     new webpack.DefinePlugin(envVariables),
+
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -91,9 +89,16 @@ export default {
             return Buffer.from(manifestStr);
           },
         },
+        {
+          from: 'src/images', // 실제 아이콘 폴더 경로
+          to: 'images', // dist 내에 images 폴더로 복사
+        },
       ],
     }),
+
+    // dayjs 로케일 로딩 최적화
     new webpack.ContextReplacementPlugin(/dayjs[/\\]locale$/, /en|ko/),
   ],
+  // 프로덕션에서도 소스맵 필요 시
   devtool: 'source-map',
 };

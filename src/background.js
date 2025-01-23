@@ -281,7 +281,7 @@ chrome.runtime.onMessageExternal.addListener(
           `&date_to=${endDate}` +
           `&date_type=arrival`;
 
-        console.log('[background] Updating tab to finalURL:', finalURL);
+        // console.log('[background] Updating tab to finalURL:', finalURL);
 
         // (2) 탭 이동
         chrome.tabs.update(targetTab.id, { url: finalURL }, (_updatedTab) => {
@@ -399,7 +399,7 @@ chrome.runtime.onMessageExternal.addListener(
       console.log('[background] TRIGGER_COOLSTAY_SCRAPE:', request);
       const { hotelId, siteName } = request;
 
-      // pms.coolstay.co.kr/* 탭 찾기
+      // 1) pms.coolstay.co.kr 탭 찾기
       chrome.tabs.query({ url: 'https://pms.coolstay.co.kr/*' }, (tabs) => {
         if (!tabs.length) {
           console.error(
@@ -407,7 +407,7 @@ chrome.runtime.onMessageExternal.addListener(
           );
           sendResponse({
             success: false,
-            message: '쿨스테이(CoolStay) 탭이 없거나 로그인 안됨',
+            message: '쿨스테이 탭이 없거나 로그인 안됨',
           });
           return;
         }
@@ -415,17 +415,71 @@ chrome.runtime.onMessageExternal.addListener(
         const targetTab = tabs[0];
         console.log('[background] Found CoolStay tab:', targetTab.id);
 
-        safeSendMessage(
-          targetTab.id,
-          {
-            action: 'SCRAPE_COOLSTAY',
-            hotelId,
-            siteName: siteName || 'CoolStay',
-          },
-          sendResponse
+        // 2) 이번 달 1일~말일을 구해 finalURL 생성
+        const now = new Date();
+        const startDate = formatYMD(
+          new Date(now.getFullYear(), now.getMonth(), 1)
+        ); // YYYYMMDD
+        const endDate = formatYMD(
+          new Date(now.getFullYear(), now.getMonth() + 1, 0)
         );
+        // 예: "20250101" ~ "20250131"
+
+        const finalURL =
+          `https://pms.coolstay.co.kr/motel-biz-pc/reservation?&page=1` +
+          `&searchType=ST602,ST608` +
+          `&searchExtra=${startDate}|${endDate},` +
+          `&sort=BOOK_DESC&tabState=0` +
+          `&selectSort=0&selectChannelOut=0` +
+          `&selectDateRange=customInput&selectEnterType=0`;
+
+        // 3) 탭 이동
+        chrome.tabs.update(targetTab.id, { url: finalURL }, () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              '[background] tabs.update error:',
+              chrome.runtime.lastError
+            );
+            sendResponse({
+              success: false,
+              message: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+
+          // 4) onUpdated 로딩 완료 감지
+          const handleUpdated = (tabId, changeInfo, tab) => {
+            if (tabId === targetTab.id && changeInfo.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(handleUpdated);
+
+              // React 등 렌더링 대기 (3초)
+              setTimeout(() => {
+                // 5) Content Script에 파싱 요청
+                safeSendMessage(
+                  targetTab.id,
+                  {
+                    action: 'SCRAPE_COOLSTAY',
+                    hotelId,
+                    siteName: siteName || 'CoolStay',
+                  },
+                  sendResponse
+                );
+              }, 3000);
+            }
+          };
+          chrome.tabs.onUpdated.addListener(handleUpdated);
+        });
       });
-      return true; // 비동기 응답
+
+      return true; // 비동기
+    }
+
+    function formatYMD(dateObj) {
+      // YYYYMMDD 형태로 포맷
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}${m}${d}`;
     }
 
     // 액션이 매칭되지 않으면 false
