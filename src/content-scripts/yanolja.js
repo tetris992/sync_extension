@@ -15,19 +15,18 @@ dayjs.extend(customParseFormat);
 console.log('[yanolja.js] loaded!');
 
 /**
- * [1] URL 생성 함수 (원본처럼 날짜 등으로 reservation/search에 파라미터 붙일 수 있음)
+ * [1] URL 생성 함수 (날짜 파라미터)
  */
 function buildReservationURL(startDate, endDate) {
   return `https://partner.yanolja.com/reservation/search?dateType=CHECK_IN_DATE&startDate=${startDate}&endDate=${endDate}&reservationStatus=ALL&keywordType=VISITOR_NAME&page=1&size=50&sort=checkInDate,desc&propertyCategory=MOTEL&checkedIn=STAY_STATUS_ALL&selectedDate=${startDate}&searchType=detail&useTypeDetail=ALL&useTypeCheckIn=ALL`;
 }
 
 /**
- * [2] 필요 시 URL 이동 (이미 그 URL이면 이동 스킵)
+ * [2] 필요 시 URL 이동
  */
 function navigateToReservationURL(startDate, endDate) {
   const updatedURL = buildReservationURL(startDate, endDate);
 
-  // 만약 이미 해당 URL이라면 이동 스킵
   if (window.location.href === updatedURL) {
     console.log('[yanolja] Already on reservation search URL, skip navigation');
     return false;
@@ -85,6 +84,11 @@ async function parseYanoljaReservations(hotelId, siteName, startDate, endDate) {
         ? customerNameEl.innerText.trim()
         : '';
 
+      const roomInfoEl = row.querySelector(
+        'td.ReservationSearchListItem__roomInfo'
+      );
+      const roomInfo = roomInfoEl ? roomInfoEl.innerText.trim() : '';
+
       // checkIn / checkOut
       const dateTd = row.querySelector('td.ReservationSearchListItem__date');
       let checkIn = '';
@@ -99,7 +103,7 @@ async function parseYanoljaReservations(hotelId, siteName, startDate, endDate) {
       const priceEl = row.querySelector('td.ReservationSearchListItem__price');
       const price = priceEl ? priceEl.innerText.trim() : '';
 
-      // reservationDate (선택)
+      // reservationDate
       const reservationDateEl = row.querySelector(
         'td.ReservationSearchListItem__reservation'
       );
@@ -111,6 +115,7 @@ async function parseYanoljaReservations(hotelId, siteName, startDate, endDate) {
         reservationNo,
         reservationStatus,
         customerName,
+        roomInfo,
         checkIn,
         checkOut,
         price,
@@ -125,25 +130,13 @@ async function parseYanoljaReservations(hotelId, siteName, startDate, endDate) {
       return;
     }
 
-    // (3.3) 날짜 필터(옵션): dayjs.isBetween(...)
-    //  예) if (!r.checkIn) skip
-    //     dayjs(r.checkIn, 'YYYY-MM-DD') ...
-    // 여기서는 일단 전부 전송
+    // (3.3) 날짜 범위 체크(필요시). 여기서는 전체 전송
     await sendReservations(hotelId, siteName, reservations);
     console.log('[yanolja] Successfully sent reservations to server.');
 
-    // (3.4) 예약 목록 파싱 끝 → 쿠키 서버 전송
-    console.log('[yanolja] requesting cookie extraction...');
-    chrome.runtime.sendMessage(
-      { action: 'EXTRACT_YANOLJA_COOKIES', hotelId },
-      (resp) => {
-        if (resp && resp.success) {
-          console.log('[yanolja] cookie extraction success');
-        } else {
-          console.warn('[yanolja] cookie extraction fail:', resp);
-        }
-      }
-    );
+    // ★ (3.4) 쿠키 서버 전송 부분 제거 ★
+    // 기존에 있던 "EXTRACT_YANOLJA_COOKIES" 메시지 송신 코드를 삭제함.
+    // ...
   } catch (err) {
     console.error('[yanolja] parse error:', err);
   }
@@ -151,41 +144,36 @@ async function parseYanoljaReservations(hotelId, siteName, startDate, endDate) {
 
 /**
  * [4] 최종 스크랩 함수
- *    (인트로/로그인 제거, 이미 로그인된 상태로 가정)
  */
 async function scrapeYanolja(hotelId, siteName = 'YanoljaMotel') {
   console.log(`[yanolja] Starting scrape. hotelId=${hotelId}`);
 
   if (window.location.pathname.includes('/login')) {
-    // 여기서는 예시로 "/login"을 통해 "로그아웃 상태" 판별
     throw new Error('로그인 필요: Yanolja');
   }
 
-  // 도메인 체크
   if (!window.location.href.includes('partner.yanolja.com')) {
     console.warn('[yanolja] Not on partner.yanolja.com domain, skip');
     return;
   }
 
-  // (4.1) 날짜 계산 (Day.js)
+  // (4.1) 날짜 계산
   const today = dayjs();
   const startDate = today.format('YYYY-MM-DD');
   const endDate = dayjs().add(30, 'day').format('YYYY-MM-DD');
 
-  // (4.2) URL 이동 시도
+  // (4.2) URL 이동
   const didNavigate = navigateToReservationURL(startDate, endDate);
   if (didNavigate) {
-    // 페이지 reload → script 재주입
-    return;
+    return; // 페이지가 바뀌면 content script가 재주입될 것
   }
 
-  // (4.3) 이미 /reservation/search?... URL이라면 → 파싱
+  // (4.3) 이미 타겟 URL이면 파싱
   await parseYanoljaReservations(hotelId, siteName, startDate, endDate);
 }
 
 /**
- * [5] background.js → content script 메시지
- *    e.g. { action: 'SCRAPE_YANOLJA', hotelId }
+ * [5] background.js → content script 메시지 리스너
  */
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log('[yanolja.js: onMessage] Received:', msg);

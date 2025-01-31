@@ -1,6 +1,5 @@
 // 파일: ota-scraper-extension/src/utils/sendReservations.js
 /* global chrome */
-// 토큰을 chrome.storage.local에서 읽는 함수
 function getStoredToken() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['accessToken'], (res) => {
@@ -10,20 +9,33 @@ function getStoredToken() {
 }
 
 export async function sendReservations(hotelId, siteName, reservations) {
-  const API_BASE_URL = process.env.BACKEND_API_URL; // ex) 'http://localhost:3003'
-
-  // (1) chrome.storage.local에서 액세스 토큰 가져오기
+  const API_BASE_URL = process.env.BACKEND_API_URL; 
   const accessToken = await getStoredToken();
   console.log('[sendReservations] using token:', accessToken);
+
+  if (siteName === 'Agoda') {
+    reservations = reservations.map((r) => {
+      if (r.checkIn instanceof Date) {
+        const inTime = r.checkIn.getTime() + 9 * 60 * 60 * 1000;
+        r.checkIn = new Date(inTime);
+      }
+      if (r.checkOut instanceof Date) {
+        const outTime = r.checkOut.getTime() + 9 * 60 * 60 * 1000;
+        r.checkOut = new Date(outTime);
+      }
+      return r;
+    });
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/reservations`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`, // ← 헤더에 붙이기
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // 혹시 쿠키 사용한다면
+      credentials: 'include',
+
       body: JSON.stringify({
         siteName,
         reservations,

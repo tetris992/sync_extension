@@ -1,5 +1,5 @@
 /****************************************
- * background.js (수정본)
+ * background.js (수정본, 전체 탭 나열 삭제)
  ****************************************/
 
 // 확장 설치 시 로그 확인
@@ -7,12 +7,6 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('[background] extension installed');
 });
 
-/**
- * [추가] chrome.tabs.sendMessage를 안전하게 호출하는 헬퍼 함수
- *   - 타임아웃(기본 10초) 내에 응답이 없으면 자동 실패 처리
- *   - chrome.runtime.lastError 발생 시 실패 처리
- *   - 정상 응답 시에는 성공으로 sendResponse
- */
 function safeSendMessage(tabId, message, sendResponse, timeoutMs = 10000) {
   let responded = false;
 
@@ -28,7 +22,7 @@ function safeSendMessage(tabId, message, sendResponse, timeoutMs = 10000) {
   }, timeoutMs);
 
   chrome.tabs.sendMessage(tabId, message, (resp) => {
-    if (responded) return; // 이미 타임아웃 등으로 응답 처리됨
+    if (responded) return;
 
     responded = true;
     clearTimeout(timerId);
@@ -59,7 +53,6 @@ function safeSendMessage(tabId, message, sendResponse, timeoutMs = 10000) {
       return;
     }
 
-    // 정상 응답이면 content script가 준 resp를 포함해 success: true로 반환
     console.log('[background] safeSendMessage success resp:', resp);
     sendResponse({ success: true, ...resp });
   });
@@ -78,12 +71,12 @@ chrome.runtime.onMessageExternal.addListener(
         sendResponse({ success: true });
       });
 
-      return true; // 비동기 응답
+      return true;
     }
 
     // [B] "SET_OTA_TOGGLES" 액션 처리
     if (request.action === 'SET_OTA_TOGGLES') {
-      const { toggles } = request; // 예: { GoodMotel: true, Yanolja: false, ... }
+      const { toggles } = request;
       console.log('[background] Received SET_OTA_TOGGLES from React:', toggles);
 
       chrome.storage.local.set({ otaToggles: toggles }, () => {
@@ -91,10 +84,10 @@ chrome.runtime.onMessageExternal.addListener(
         sendResponse({ success: true });
       });
 
-      return true; // 비동기 응답
+      return true;
     }
 
-    // [B1] 여기어때모텔 스크래핑
+    // [B1] 여기어때모텔
     else if (request.action === 'TRIGGER_GOODMOTEL_SCRAPE') {
       console.log('[background] Received TRIGGER_GOODMOTEL_SCRAPE:', request);
       const { hotelId } = request;
@@ -115,30 +108,23 @@ chrome.runtime.onMessageExternal.addListener(
         const targetTab = tabs[0];
         console.log('[background] Found GoodMotel tab:', targetTab.id);
 
-        // [수정] safeSendMessage 사용
+        // safeSendMessage 사용
         safeSendMessage(
           targetTab.id,
           { action: 'SCRAPE_GOODMOTEL', hotelId },
           sendResponse
         );
       });
-      return true; // 비동기 응답
+      return true;
     }
 
-    // [B3] 굿호텔 스크래핑
+    // [B3] 굿호텔
     else if (request.action === 'TRIGGER_GOODHOTEL_SCRAPE') {
       console.log(
         '[background] Received TRIGGER_GOODHOTEL_SCRAPE action',
         request
       );
       const { hotelId } = request;
-
-      chrome.tabs.query({}, (allTabs) => {
-        console.log(
-          '[background] All open tabs:',
-          allTabs.map((tab) => tab.url)
-        );
-      });
 
       // partner.goodchoice.kr 탭 찾기
       chrome.tabs.query(
@@ -179,10 +165,10 @@ chrome.runtime.onMessageExternal.addListener(
           );
         }
       );
-      return true; // 비동기 응답
+      return true;
     }
 
-    // [B4] 아고다(Agoda) 스크래핑
+    // [B4] 아고다(Agoda)
     else if (request.action === 'TRIGGER_AGODA_SCRAPE') {
       console.log('[background] TRIGGER_AGODA_SCRAPE:', request);
       const { hotelId, siteName, roomTypes } = request;
@@ -212,10 +198,10 @@ chrome.runtime.onMessageExternal.addListener(
           sendResponse
         );
       });
-      return true; // 비동기 응답
+      return true;
     }
 
-    // (★ 추가) [B4] 야놀자(Yanolja) 스크래핑
+    // (★ 추가) [B4] 야놀자(Yanolja)
     else if (request.action === 'TRIGGER_YANOLJA_SCRAPE') {
       console.log('[background] TRIGGER_YANOLJA_SCRAPE:', request);
       const { hotelId } = request;
@@ -242,10 +228,10 @@ chrome.runtime.onMessageExternal.addListener(
           sendResponse
         );
       });
-      return true; // 비동기
+      return true;
     }
 
-    // [B5] 부킹(Booking) 스크래핑
+    // [B5] 부킹(Booking)
     else if (request.action === 'TRIGGER_BOOKING_SCRAPE') {
       console.log('[background] TRIGGER_BOOKING_SCRAPE:', request);
       const { hotelId, siteName, roomTypes } = request;
@@ -266,22 +252,20 @@ chrome.runtime.onMessageExternal.addListener(
         const targetTab = tabs[0];
         console.log('[background] Found Booking tab:', targetTab.id);
 
-        // (1) 이동할 URL 구성 (실제 hotel_id, 날짜 설정은 예시)
+        // (1) 이동할 URL 구성
         const today = new Date();
         const startDate = today.toISOString().split('T')[0];
-        const endDateObj = new Date(today.getTime() + 30 * 86400000); // 30일 후
+        const endDateObj = new Date(today.getTime() + 30 * 86400000);
         const endDate = endDateObj.toISOString().split('T')[0];
 
         const finalURL =
           `https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/search_reservations.html` +
           `?upcoming_reservations=1&source=nav` +
-          `&hotel_id=6876426` + // 예시
+          `&hotel_id=6876426` +
           `&lang=ko` +
           `&date_from=${startDate}` +
           `&date_to=${endDate}` +
           `&date_type=arrival`;
-
-        // console.log('[background] Updating tab to finalURL:', finalURL);
 
         // (2) 탭 이동
         chrome.tabs.update(targetTab.id, { url: finalURL }, (_updatedTab) => {
@@ -304,7 +288,6 @@ chrome.runtime.onMessageExternal.addListener(
               chrome.tabs.onUpdated.removeListener(handleUpdated);
 
               setTimeout(() => {
-                // 이제 content script로 스크래핑 지시
                 safeSendMessage(
                   targetTab.id,
                   {
@@ -322,10 +305,10 @@ chrome.runtime.onMessageExternal.addListener(
           chrome.tabs.onUpdated.addListener(handleUpdated);
         });
       });
-      return true; // 비동기
+      return true;
     }
 
-    // [B6] 익스피디아(Expedia) 스크래핑
+    // [B6] 익스피디아(Expedia)
     else if (request.action === 'TRIGGER_EXPEDIA_SCRAPE') {
       console.log('[background] TRIGGER_EXPEDIA_SCRAPE:', request);
       const { hotelId, siteName } = request;
@@ -419,11 +402,10 @@ chrome.runtime.onMessageExternal.addListener(
         const now = new Date();
         const startDate = formatYMD(
           new Date(now.getFullYear(), now.getMonth(), 1)
-        ); // YYYYMMDD
+        );
         const endDate = formatYMD(
           new Date(now.getFullYear(), now.getMonth() + 1, 0)
         );
-        // 예: "20250101" ~ "20250131"
 
         const finalURL =
           `https://pms.coolstay.co.kr/motel-biz-pc/reservation?&page=1` +
@@ -452,9 +434,7 @@ chrome.runtime.onMessageExternal.addListener(
             if (tabId === targetTab.id && changeInfo.status === 'complete') {
               chrome.tabs.onUpdated.removeListener(handleUpdated);
 
-              // React 등 렌더링 대기 (3초)
               setTimeout(() => {
-                // 5) Content Script에 파싱 요청
                 safeSendMessage(
                   targetTab.id,
                   {
@@ -471,30 +451,27 @@ chrome.runtime.onMessageExternal.addListener(
         });
       });
 
-      return true; // 비동기
+      return true;
     }
 
     function formatYMD(dateObj) {
-      // YYYYMMDD 형태로 포맷
       const y = dateObj.getFullYear();
       const m = String(dateObj.getMonth() + 1).padStart(2, '0');
       const d = String(dateObj.getDate()).padStart(2, '0');
       return `${y}${m}${d}`;
     }
 
-    // 액션이 매칭되지 않으면 false
     return false;
   }
 );
 
-// (2) 내부 메시지 처리 (content script → background)
+// (2) 내부 메시지 처리
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === 'GET_TOKEN') {
-    // chrome.storage.local에서 토큰 꺼내서 응답
     chrome.storage.local.get('accessToken', (res) => {
       sendResponse({ accessToken: res.accessToken || '' });
     });
-    return true; // 비동기 응답
+    return true;
   }
 
   if (req.action === 'GET_OTA_TOGGLES') {
@@ -502,7 +479,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     chrome.storage.local.get(['otaToggles'], (res) => {
       sendResponse({ otaToggles: res.otaToggles || {} });
     });
-    return true; // 비동기 응답
+    return true;
   }
 
   return false;

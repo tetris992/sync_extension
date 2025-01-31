@@ -1,9 +1,9 @@
 {
   "name": "OTA Scraper Extension",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "manifest_version": 3,
   "description": "Scrapes multiple OTA reservation data and sends to local server.",
-  "permissions": ["alarms", "tabs", "storage", "scripting", "cookies"],
+  "permissions": ["storage"],
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
@@ -23,7 +23,6 @@
     "https://partner.goodchoice.kr/*",
     "https://partner.yanolja.com/*",
     "https://*.yanolja.com/*",
-    "https://account.yanolja.biz/*",
     "https://ycs.agoda.com/*",
     "https://admin.booking.com/*",
     "https://apps.expediapartnercentral.com/*",
@@ -31,15 +30,12 @@
     "https://pms.coolstay.co.kr/*",
     "http://localhost:3003/*",
     "https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com/*",
-    "https://tetris992.github.io/*",
     "https://tetris992.github.io/stay_react/*"
   ],
   "externally_connectable": {
     "matches": [
       "https://staysync.me/*",
-      "http://localhost:3000/*",
-      "https://tetris992.github.io/*",
-      "https://tetris992.github.io/stay_react/*"
+      "http://localhost:3000/*"
     ]
   },
   "background": {

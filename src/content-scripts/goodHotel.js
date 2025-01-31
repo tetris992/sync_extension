@@ -17,7 +17,7 @@ async function waitForSelector(selector, maxRetries = 2, intervalMs = 2000) {
 
 /**
  * 1) 실제 예약 목록을 파싱하고 서버로 전송하는 함수
- *    (기존 Puppeteer 코드의 흐름을 content script에서 재현)
+ 
  */
 async function scrapeGoodChoiceHotel(hotelId, siteName = 'GoodHotel') {
   console.log(`[goodHotel] Starting scrape for hotelId=${hotelId}`);
@@ -38,7 +38,7 @@ async function scrapeGoodChoiceHotel(hotelId, siteName = 'GoodHotel') {
       console.log('[goodHotel] Not on reservation-list page → navigating...');
       window.location.href =
         'https://partner.goodchoice.kr/reservations/reservation-list';
-      // 페이지 이동 시 content script가 재주입되므로, 아래 코드는 재실행될 때 진행됨
+
       return;
     }
 
@@ -172,7 +172,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         console.error('[goodHotel.js] Scrape error:', error);
         sendResponse({ success: false, message: error.message });
       });
-    return true; // 비동기 응답
+    return true;
   }
   return false;
 });
