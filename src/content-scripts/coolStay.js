@@ -109,6 +109,7 @@ function parseDomReservations(hotelId, siteName) {
         ? resDateDayjs.format('YYYY-MM-DD HH:mm')
         : '',
       price: r.price || 0,
+      phoneNumber: r.safeNumber || '',
       paymentMethod: r.paymentMethod || 'Unknown',
       reservationStatus: statusMap['B004'] || 'Confirmed',
       siteName,

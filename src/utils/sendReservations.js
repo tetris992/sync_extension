@@ -1,54 +1,72 @@
-// 파일: ota-scraper-extension/src/utils/sendReservations.js
 /* global chrome */
+import { API_BASE_URL } from './config';
+
 function getStoredToken() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['accessToken'], (res) => {
-      resolve(res.accessToken || '');
+      console.log('[sendReservations] Stored tokens:', res);
+      resolve({ accessToken: res.accessToken || '' });
     });
   });
 }
 
-export async function sendReservations(hotelId, siteName, reservations) {
-  const API_BASE_URL = process.env.BACKEND_API_URL; 
-  const accessToken = await getStoredToken();
-  console.log('[sendReservations] using token:', accessToken);
+export async function sendReservations(
+  hotelId,
+  siteName,
+  reservations,
+  providedAccessToken = null
+) {
+  const { accessToken: storedAccessToken } = providedAccessToken
+    ? { accessToken: providedAccessToken }
+    : await getStoredToken();
+  const accessToken = storedAccessToken;
 
-  if (siteName === 'Agoda') {
-    reservations = reservations.map((r) => {
-      if (r.checkIn instanceof Date) {
-        const inTime = r.checkIn.getTime() + 9 * 60 * 60 * 1000;
-        r.checkIn = new Date(inTime);
-      }
-      if (r.checkOut instanceof Date) {
-        const outTime = r.checkOut.getTime() + 9 * 60 * 60 * 1000;
-        r.checkOut = new Date(outTime);
-      }
-      return r;
-    });
+  console.log('[sendReservations] Using token:', { accessToken });
+
+  if (!accessToken) {
+    console.error('[sendReservations] No access token available');
+    throw new Error('No access token available. Please log in via frontend.');
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/reservations`, {
+    if (siteName === 'Agoda') {
+      reservations = reservations.map((r) => {
+        if (r.checkIn instanceof Date) {
+          const inTime = r.checkIn.getTime() + 9 * 60 * 60 * 1000;
+          r.checkIn = new Date(inTime);
+        }
+        if (r.checkOut instanceof Date) {
+          const outTime = r.checkOut.getTime() + 9 * 60 * 60 * 1000;
+          r.checkOut = new Date(outTime);
+        }
+        return r;
+      });
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/reservations-extension`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-
-      body: JSON.stringify({
-        siteName,
-        reservations,
-        hotelId,
-      }),
+      body: JSON.stringify({ siteName, reservations, hotelId }),
     });
 
     if (!response.ok) {
-      throw new Error(`Server responded with status ${response.status}`);
+      const errorText = await response.text();
+      console.error(
+        '[sendReservations] Server error:',
+        response.status,
+        errorText
+      );
+      throw new Error(
+        `Server responded with status ${response.status}: ${errorText}`
+      );
     }
 
     console.log(
-      `[sendReservations] Sent reservations to ${API_BASE_URL}, hotelId=${hotelId}`
+      `[sendReservations] Sent reservations to ${API_BASE_URL}/api/reservations-extension, hotelId=${hotelId}`
     );
     return true;
   } catch (error) {

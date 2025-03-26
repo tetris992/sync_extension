@@ -1,6 +1,6 @@
 {
   "name": "OTA Scraper Extension",
-  "version": "1.0.2",
+  "version": "1.1.2",
   "manifest_version": 3,
   "description": "Scrapes multiple OTA reservation data and sends to local server.",
   "permissions": ["storage"],
@@ -28,15 +28,13 @@
     "https://apps.expediapartnercentral.com/*",
     "https://www.expediapartnercentral.com/*",
     "https://pms.coolstay.co.kr/*",
-    "http://localhost:3003/*",
-    "https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com/*",
-    "https://tetris992.github.io/stay_react/*"
+    "https://staysync.org/*",
+    "https://tetris992.github.io/stay_react/*",
+    "http://localhost:3000/*",
+    "http://localhost:3004/*"
   ],
   "externally_connectable": {
-    "matches": [
-      "https://staysync.me/*",
-      "http://localhost:3000/*"
-    ]
+    "matches": ["https://staysync.me/*", "http://localhost:3000/*"]
   },
   "background": {
     "service_worker": "background.bundle.js"

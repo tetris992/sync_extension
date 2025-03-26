@@ -9,22 +9,15 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const isDev = process.env.NODE_ENV !== 'production';
-const mode = isDev ? 'development' : 'production';
-
+const mode =
+  process.env.NODE_ENV === 'production' ? 'production' : 'development';
 const envVariables = {
-  'process.env.EXTENSION_NAME': JSON.stringify('OTA Scraper Extension'),
-  'process.env.DESCRIPTION': JSON.stringify(
-    'Scrape multiple OTA reservation data and send to server.'
-  ),
-
+  'process.env.NODE_ENV': JSON.stringify(mode),
   'process.env.BACKEND_API_URL': JSON.stringify(
-    isDev
-      ? 'http://localhost:3003'
-      : 'https://container-service-1.302qcbg9eaynw.ap-northeast-2.cs.amazonlightsail.com'
+    mode === 'production' ? 'https://staysync.org' : 'http://localhost:3004'
   ),
   'process.env.REACT_APP_URL': JSON.stringify(
-    isDev ? 'http://localhost:3000' : 'https://staysync.me'
+    mode === 'production' ? 'https://staysync.me' : 'http://localhost:3000'
   ),
 };
 
